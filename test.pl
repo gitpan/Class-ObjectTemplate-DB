@@ -9,10 +9,10 @@
 BEGIN { $| = 1; print "1..27\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use blib;
-use Class::ObjectTemplate::DB;
+# use Class::ObjectTemplate::DB;
 $loaded = 1;
 $i=1;
-print "ok ", $i++, "\n";
+result($loaded);
 
 ######################### End of black magic.
 
@@ -126,6 +126,10 @@ BEGIN {
 
   print F <<'EOF';
 package Baz;
+# BEGIN {
+#  $Class::ObjectTemplate::DEBUG=1;
+#  $Class::ObjectTemplate::DB::DEBUG=1;
+# }
 use Class::ObjectTemplate::DB;
 use subs qw(undefined);
 @ISA = qw(Class::ObjectTemplate::DB);
@@ -137,6 +141,13 @@ sub undefined {return 27}
 package BazINC;
 use Class::ObjectTemplate::DB;
 @ISA = qw(Baz);
+attributes();
+
+package BazINC2;
+use Class::ObjectTemplate::DB;
+@ISA = qw(Baz);
+
+attributes(no_lookup=>['three'],lookup=>['four']);
 
 1;
 EOF
@@ -147,7 +158,7 @@ require Baz;
 $baz = new Baz();
 
 #
-# test that Baz::undefined is *not* being called. 
+# test that Baz::undefined is *not* being called.
 #
 result(!defined $baz->one());
 
@@ -191,7 +202,7 @@ result($baz_inc->one() == 34);
 result(scalar @BazINC::_one);
 
 #
-# test that Baz::undefined *is* being called. 
+# test that Baz::undefined *is* being called.
 #
 result($baz_inc->two() == 27);
 
@@ -205,11 +216,27 @@ result($baz_inc->one() != $baz->one());
 #
 # test that $baz_inc->DESTROY properly modifies that @_free array in
 # Baz and does not add one to BazINC
-$old_free = scalar @Baz::_free;
+$old_free = scalar @BazINC::_free;
 $baz_inc->DESTROY();
-result(!scalar @BazINC::_free);
+result(!scalar @Baz::_free);
 
-result($old_free != scalar @Baz::_free);
+result($old_free != scalar @BazINC::_free);
+
+#
+# Now test inheritance from a class that defines new attributes
+#
+$baz_inc2 = BazINC2->new();
+$baz_inc2->one(34);
+result($baz_inc2->one() == 34);
+
+$baz_inc2->three(34);
+result($baz_inc2->three() == 34);
+
+$old_free = scalar @BazINC2::_free;
+$baz_inc2->DESTROY();
+result(! scalar @Baz::_free);
+
+result($old_free != scalar @BazINC2::_free);
 
 END { 1 while unlink 'Baz.pm'}
 

@@ -1,5 +1,9 @@
 Revision history for Perl extension Class::ObjectTemplate::DB.
 
+0.26 Mon Feb 25 14:54:46 MST 2002
+	- Fixed deep inheritance bug
+	- now requires ObjectTemplate.pm v0.6
+
 0.25 Mon Jan  7 15:39:53 MST 2002
 	- fixed bug that over-rode method if an attribute was defined
 	  with the same name 

@@ -9,7 +9,7 @@ use vars qw(@ISA @EXPORT $VERSION $DEBUG);
 
 @ISA = qw(Class::ObjectTemplate Exporter);
 @EXPORT = qw(attributes);
-$VERSION = 0.25;
+$VERSION = 0.26;
 
 $DEBUG = 0; # assign 1 to it to see code generated on the fly 
 
@@ -32,27 +32,28 @@ sub attributes {
     my %args;
     # figure out if we were called with a simple parameter list
     # or with a hash-style parameter list
-    if (scalar @_ % 2 == 0 &&
-	($_[0] eq 'lookup' || $_[0] eq 'no_lookup') &&
-	ref($_[1]) eq 'ARRAY') 
-    {
-      # we were called with hash style parameters
-      %args = @_;
-    } else {
-      # we were called with a simple parameter list
-      %args = ('no_lookup' => [@_]);
+    if (scalar @_) {
+      if (scalar @_ % 2 == 0 &&
+	  ($_[0] eq 'lookup' || $_[0] eq 'no_lookup') &&
+	  ref($_[1]) eq 'ARRAY') {
+	# we were called with hash style parameters
+	%args = @_;
+      } else {
+	# we were called with a simple parameter list
+	%args = ('no_lookup' => [@_]);
+      }
     }
-
-    my $code = "";
     my $lookup;
-    # Define accessor only if we haven't done it already. This enables
-    # attributes() to be called multiple times.
-    unless (UNIVERSAL::can($pkg,"new")) {
-      print STDERR "defining constructor for $pkg\n" if $DEBUG;
-      $code .= Class::ObjectTemplate::_define_constructor($pkg);
-    } else {
-      print STDERR "constructor already defined for $pkg\n" if $DEBUG;
-    }
+
+    #
+    # We must define a constructor for the class, because we must
+    # declare the variables used for the free list, $_max_id and
+    # @_free. If we don't, we will get compile errors for any class
+    # that declares itself a subclass of any Class::ObjectTemplate
+    # class
+    #
+    print STDERR "defining constructor for $pkg\n" if $DEBUG;
+    my $code .= Class::ObjectTemplate::_define_constructor($pkg);
 
     print STDERR "Creating methods for $pkg\n" if $DEBUG;
     foreach my $key (keys %args) {
@@ -78,8 +79,8 @@ sub attributes {
 
     eval $code;
     if ($@) {
-       die  "ERROR defining constructor and attributes for '$pkg':" 
-            . "\n\t$@\n" 
+       die  "ERROR defining constructor and attributes for '$pkg':\n"
+            . "\t$@\n"
             . "-----------------------------------------------------"
             . $code;
     }
@@ -89,55 +90,41 @@ sub _define_accessor {
     my ($pkg, $attr, $lookup) = @_;
 
     # This code creates an accessor method for a given
-    # attribute name. This method  returns the attribute value 
+    # attribute name. This method  returns the attribute value
     # if given no args, and modifies it if given one arg.
     # Either way, it returns the latest value of that attribute
 
-    # JES -- modified to first call function undefined() if the getter
-    #   is called and the current value is undef
-
-    # JES -- fixed bug where getter was called with foo(undef)
-    #   added 'return' to setter line
-
-    # JES -- fixed bug so that inherited classes worked
-
-    # JES -- simplified the free list to be a stack, and added a 
-    # separate $_max_id variable
+    # in ObjectTemplate::DB, if the getter is called and the current
+    # value of the attribute is undef, then the classes undefined()
+    # method will be invoked with the name of the attribute.
 
     my $code;
     if ($lookup) {
       # If we are to do automatic lookup when the current value
       # is undefined, we need to be complicated
-      $code = qq{
-        package $pkg;
-        sub $attr {                                       # Accessor ...
-            my \$name = ref(\$_[0]) . "::_$attr";
-            return \$name->[\${\$_[0]}] = \$_[1] if \@_ > 1; # set
-            return \$name->[\${\$_[0]}] 
-                 if defined \$name->[\${\$_[0]}];     # get
-	    # else call undefined(), and give it a change to define
-            return \$name->[\${\$_[0]}] = \$_[0]->undefined('$attr');
-        }
-      };
+      $code = <<"CODE";
+package $pkg;
+sub $attr {                                       # Accessor ...
+    my \$name = ref(\$_[0]) . "::_$attr";
+    return \$name->[\${\$_[0]}] = \$_[1] if \@_ > 1; # set
+    return \$name->[\${\$_[0]}] 
+         if defined \$name->[\${\$_[0]}];     # get
+    # else call undefined(), and give it a change to define
+    return \$name->[\${\$_[0]}] = \$_[0]->undefined('$attr');
+}
+CODE
     } else {
       # if we don't need to do lookup, it's short and sweet
-      $code = qq{
-        package $pkg;
-        sub $attr {                                      # Accessor ...
-            my \$name = ref(\$_[0]) . "::_$attr";
-            \@_ > 1 ? \$name->[\${\$_[0]}] = \$_[1]  # set
-                    : \$name->[\${\$_[0]}];          # get
-        }
-      };
+      $code = <<"CODE";
+package $pkg;
+sub $attr {                                      # Accessor ...
+    my \$name = ref(\$_[0]) . "::_$attr";
+    \@_ > 1 ? \$name->[\${\$_[0]}] = \$_[1]  # set
+            : \$name->[\${\$_[0]}];          # get
+}
+CODE
     }
-    $code .= qq{
-        if (!defined \$_max_id) {
-            # Set up the free list, and the ID counter
-            \@_free = ();
-            \$_max_id = 0;
-        };
-    };
-    $code;
+  return $code;
 }
 
 # JES
