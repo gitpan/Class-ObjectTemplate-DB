@@ -1,8 +1,14 @@
 Revision history for Perl extension Class::ObjectTemplate::DB.
 
+0.25 Mon Jan  7 15:39:53 MST 2002
+	- fixed bug that over-rode method if an attribute was defined
+	  with the same name 
+	- now has use strict
+
 0.24 Fri Jan 26 13:15:46 MST 2001
      - Added Class::ObjectTemplate to PREREQ_PM hash in Makefile.PL so
        that CPAN will automatically install it. 
+
 0.23 Sun Jan 14 10:14:54 MST 2001
      - added README
 

@@ -1,13 +1,15 @@
 package Class::ObjectTemplate::DB;
-use Class::ObjectTemplate ();
+use Class::ObjectTemplate 0.5;
 use Carp;
+use strict;
+no strict 'refs';
 require Exporter;
 
 use vars qw(@ISA @EXPORT $VERSION $DEBUG);
 
 @ISA = qw(Class::ObjectTemplate Exporter);
 @EXPORT = qw(attributes);
-$VERSION = 0.24;
+$VERSION = 0.25;
 
 $DEBUG = 0; # assign 1 to it to see code generated on the fly 
 
@@ -43,6 +45,15 @@ sub attributes {
 
     my $code = "";
     my $lookup;
+    # Define accessor only if we haven't done it already. This enables
+    # attributes() to be called multiple times.
+    unless (UNIVERSAL::can($pkg,"new")) {
+      print STDERR "defining constructor for $pkg\n" if $DEBUG;
+      $code .= Class::ObjectTemplate::_define_constructor($pkg);
+    } else {
+      print STDERR "constructor already defined for $pkg\n" if $DEBUG;
+    }
+
     print STDERR "Creating methods for $pkg\n" if $DEBUG;
     foreach my $key (keys %args) {
       push(@{"${pkg}::_ATTRIBUTES_"},@{$args{$key}});
@@ -59,19 +70,12 @@ sub attributes {
         # If the accessor is already present, give a warning
         if (UNIVERSAL::can($pkg,"$attr")) {
 	  carp "$pkg already has method: $attr";
+	} else {
+	  $code .= _define_accessor ($pkg, $attr, $lookup);
 	}
-	$code .= _define_accessor ($pkg, $attr, $lookup);
       }
     }
 
-    # Define accessor only if we haven't done it already. This enables
-    # attributes() to be called multiple times.
-    unless (UNIVERSAL::can($pkg,"new")) {
-      print STDERR "defining constructor for $pkg\n" if $DEBUG;
-      $code .= Class::ObjectTemplate::_define_constructor($pkg);
-    } else {
-      print STDERR "constructor already defined for $pkg\n" if $DEBUG;
-    }
     eval $code;
     if ($@) {
        die  "ERROR defining constructor and attributes for '$pkg':" 
@@ -127,7 +131,7 @@ sub _define_accessor {
       };
     }
     $code .= qq{
-        if (!defined \$max_id) {
+        if (!defined \$_max_id) {
             # Set up the free list, and the ID counter
             \@_free = ();
             \$_max_id = 0;
