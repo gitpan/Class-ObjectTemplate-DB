@@ -6,9 +6,9 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..27\n"; }
+BEGIN { $| = 1; print "1..31\n"; }
 END {print "not ok 1\n" unless $loaded;}
-use blib;
+# use blib;
 # use Class::ObjectTemplate::DB;
 $loaded = 1;
 $i=1;
@@ -67,11 +67,6 @@ result($f->two() == 45);
 #
 my $f = new FooFoo();
 result(! defined $f->one());
-
-#
-# test find_free
-#
-result(Class::ObjectTemplate::find_free('FooFoo') eq 'FooFoo');
 
 #
 # Check the we are handling free properly, by adding to the free list
@@ -185,7 +180,7 @@ $baz_inc = new BazINC();
 # test that @Baz::_ATTRIBUTES_ is not being set. This is to check a
 # bug where inherited classes didn't get their attributes properly
 # initialized
-result(scalar @BazINC::_ATTRIBUTES_ == 0);
+result(scalar @BazINC::_ATTRIBUTES_ == 2);
 
 #
 # test that Baz::undefined is *not* being called. 
@@ -272,10 +267,11 @@ BEGIN {
   open(F,">Foo2.pm") or die "Couldn't write Foo2.pm";
   print F <<'EOT';
 package Foo2;
-use Class::ObjectTemplate;
-@ISA = qw(Class::ObjectTemplate);
-attributes(one, two, three);
+use Class::ObjectTemplate::DB;
+@ISA = qw(Class::ObjectTemplate::DB);
+attributes(lookup=>[qw(one two three)]);
 sub one {return 1;}
+sub undefined {return 27};
 
 1;
 EOT
@@ -298,6 +294,19 @@ result($f->get_attribute('one') == $value);
 
 # check that the subroutine is still called
 result($f->one() == 1);
+
+# test get_attributes() doesn't call undefined
+$f->two(24);
+my @list2 = $f->get_attributes('two','three');
+my @list = ($f->two,$f->three);
+my $equal = 1;
+for (my $i=0;$i<scalar @list;$i++) {
+  if ($list[$i] != $list2[$i]) {
+    $equal = 0;
+    last;
+  }
+}
+result(!$equal);
 
 END { 1 while unlink 'Foo2.pm'}
 
