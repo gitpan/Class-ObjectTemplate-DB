@@ -239,6 +239,6 @@ END { 1 while unlink 'FooBar.pm'}
 
 sub result {
   my $cond = shift;
-  print STDERR "not " unless $cond;
-  print STDERR "ok ", $i++, "\n";
+  print STDOUT "not " unless $cond;
+  print STDOUT "ok ", $i++, "\n";
 }

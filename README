@@ -1,0 +1,25 @@
+Class::ObjectTemplate::DB
+---------------------
+
+This package contains Perl extension for an optimized template
+builder base class with lookup capability.
+
+Required Modules
+----------------
+Class::ObjectTemplate
+
+Authors
+-------
+
+Copyright 2001 Jason E. Stewart
+
+License
+-------
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
+Bugs
+----
+
+Please report and bugs to jason@openinformatics.com

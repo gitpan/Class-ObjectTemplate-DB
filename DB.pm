@@ -7,7 +7,7 @@ use vars qw(@ISA @EXPORT $VERSION $DEBUG);
 
 @ISA = qw(Class::ObjectTemplate Exporter);
 @EXPORT = qw(attributes);
-$VERSION = 0.23;
+$VERSION = 0.24;
 
 $DEBUG = 0; # assign 1 to it to see code generated on the fly 
 
