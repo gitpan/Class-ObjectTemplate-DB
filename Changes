@@ -1,5 +1,8 @@
 Revision history for Perl extension Class::ObjectTemplate::DB.
 
+0.23 Sun Jan 14 10:14:54 MST 2001
+     - added README
+
 0.22 Sun Jan 14 08:35:15 MST 2001
      - Changed name to Class::ObjectTemplate::DB
      - now inherits from Class::ObjectTemplate

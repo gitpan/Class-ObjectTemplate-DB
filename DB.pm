@@ -7,7 +7,7 @@ use vars qw(@ISA @EXPORT $VERSION $DEBUG);
 
 @ISA = qw(Class::ObjectTemplate Exporter);
 @EXPORT = qw(attributes);
-$VERSION = 0.22;
+$VERSION = 0.23;
 
 $DEBUG = 0; # assign 1 to it to see code generated on the fly 
 
@@ -141,3 +141,102 @@ sub _define_accessor {
 sub undefined {return undef;}
 1;
 
+__END__
+
+=head1 NAME
+
+Class::ObjectTemplate:DB - Perl extension for an optimized template
+builder base class with lookup capability.
+
+=head1 SYNOPSIS
+
+  package Foo;
+  use Class::ObjectTemplate::DB;
+  require Exporter;
+  @ISA = qw(Class::ObjectTemplate:DB Exporter);
+
+  attributes(lookup => ['one', 'two'], no_lookup => ['three']);
+
+  $foo = Foo->new();
+
+  # these two invocations can trigger lookup
+  $val = $foo->one();
+  $val = $foo->two();
+
+  # this invocation will not trigger lookup
+  $val = $foo->three();
+
+  # undefined() handles lookup
+  sub Foo::undefined {
+    my ($self,$attr) = @_;
+
+    # we retrieve $attr from DB
+    return DB_Lookup($self,$attr);
+  }
+
+
+=head1 DESCRIPTION
+
+Class::ObjectTemplate::DB extends Class::ObjectTemplate in one simple
+way: the C<undefined()> method.
+
+When a class that inherits from Class::ObjectTemplate::DB defines a
+method called undefined(), that method will be triggered when an
+attribute\'s getter method is invoked and the attribute\'s current
+value is C<undef>.
+
+The author finds this useful when representing classes based on
+objects stored in databases (hence the name of the module). That way
+an object can be created, without triggering a DB lookup. Later if
+data is accessed and it is not currently present in the object, it can
+be retrieved on an as-need basis.
+
+=head2 METHODS
+
+=over
+
+=item attributes('attr1', 'attr2')
+
+=item attributes(lookup => ['attr1'], no_lookup => ['attr2'])
+
+C<attributes()> still supports the standard Class::ObjectTemplate
+syntax of a list of attribute names.
+
+To use the new functionality, the new key-value syntax must be
+used. Any method names specified in the C<lookup> array, will trigger
+undefined. Those specified in the C<no_lookup> will not trigger
+C<undefined()>.
+
+=item undefined($self, $attr_name)
+
+A class that inherits from Class::ObjectTemplate::DB must define a
+method called C<undefined()> in order to utilize the lookup behavior. 
+
+Whenever an attribute\'s getter method is invoked, and that
+attribute\'s value is currently C<undef>, then C<undefined()> will be
+invoked if that attribute was defined as in the C<lookup> array when
+C<attributes()> was called.
+
+A class\'s C<undefined()> method can include any specialized code
+needed to lookup the value for that objects\'s attribute, such as
+using DBI to connect to a local DB, and retrieve the value from a
+table.
+
+Class::ObjectTemplate::DB defines a default C<undefined()> which does
+nothing.
+
+=back
+
+=head2 EXPORT
+
+=item attributes()
+
+=head1 AUTHOR
+
+Jason E. Stewart (jason@openinformatics.com)
+
+=head1 SEE ALSO
+
+perl(1).
+
+=cut
